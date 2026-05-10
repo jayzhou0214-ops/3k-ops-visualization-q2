@@ -1,0 +1,1424 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>晋冀大区3K劳动竞赛二季度规划 | 数据驱动可视化运营</title>
+  <style>
+    :root {
+      --wine: #7B1113;
+      --navy: #001F3F;
+      --ink: #101827;
+      --muted: #5F6B7A;
+      --line: #D9E0EA;
+      --paper: #FBFAF7;
+      --wash: #F3E9EA;
+      --bluewash: #EEF4FA;
+      --gold: #C99C3B;
+      --ok: #146B4A;
+      --warn: #B76E00;
+      --bad: #A61B1F;
+      --radius: 8px;
+      --shadow: 0 24px 80px rgba(0, 31, 63, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #fff;
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Helvetica Neue", Arial, sans-serif;
+      overflow-x: hidden;
+    }
+
+    button, input, textarea { font: inherit; }
+    a { color: inherit; text-decoration: none; }
+
+    .shell {
+      width: min(1180px, calc(100vw - 48px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: fixed;
+      inset: 0 0 auto 0;
+      z-index: 50;
+      height: 64px;
+      backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.78);
+      border-bottom: 1px solid rgba(217, 224, 234, 0.78);
+    }
+
+    .topbar .shell {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      color: var(--navy);
+      white-space: nowrap;
+    }
+
+    .brand-mark {
+      width: 13px;
+      height: 13px;
+      background: var(--wine);
+      box-shadow: 7px 7px 0 var(--navy);
+    }
+
+    .nav {
+      display: flex;
+      gap: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .nav a {
+      padding: 9px 10px;
+      border-radius: 999px;
+      transition: 240ms ease;
+      white-space: nowrap;
+    }
+
+    .nav a:hover {
+      color: #fff;
+      background: var(--navy);
+    }
+
+    section {
+      position: relative;
+      padding: 108px 0;
+      border-bottom: 1px solid rgba(217, 224, 234, 0.7);
+    }
+
+    .hero {
+      min-height: 100vh;
+      padding-top: 120px;
+      display: grid;
+      align-items: center;
+      background:
+        radial-gradient(circle at 74% 20%, rgba(123, 17, 19, 0.16), transparent 28%),
+        radial-gradient(circle at 88% 70%, rgba(0, 31, 63, 0.14), transparent 36%),
+        linear-gradient(180deg, #fff 0%, #fbfcfd 100%);
+      overflow: hidden;
+    }
+
+    #particleCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0.42;
+    }
+
+    .hero-grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 56px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 11px;
+      height: 11px;
+      background: var(--wine);
+      display: inline-block;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      margin-top: 28px;
+      color: var(--navy);
+      font-size: clamp(42px, 7vw, 86px);
+      line-height: 0.98;
+      letter-spacing: 0;
+      font-weight: 900;
+    }
+
+    .hero h1 span { color: var(--wine); display: block; }
+
+    .lead {
+      margin-top: 28px;
+      max-width: 640px;
+      color: var(--muted);
+      font-size: clamp(16px, 1.6vw, 20px);
+      line-height: 1.75;
+      font-weight: 500;
+    }
+
+    .hero-panel {
+      position: relative;
+      min-height: 520px;
+      padding: 40px;
+      border-left: 9px solid var(--wine);
+      background: var(--navy);
+      color: #fff;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero-panel::after {
+      content: "";
+      position: absolute;
+      width: 360px;
+      height: 360px;
+      right: -170px;
+      top: -130px;
+      border: 1px solid rgba(255,255,255,0.18);
+      transform: rotate(18deg);
+    }
+
+    .hero-kpis {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 36px;
+    }
+
+    .hero-kpi {
+      min-height: 132px;
+      padding: 18px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.05);
+      transition: 280ms ease;
+    }
+
+    .hero-kpi:hover {
+      transform: translateY(-8px);
+      background: rgba(123, 17, 19, 0.38);
+      border-color: rgba(255,255,255,0.36);
+    }
+
+    .kpi-value {
+      display: block;
+      font-size: 30px;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .kpi-label {
+      display: block;
+      margin-top: 10px;
+      color: #d9e5f2;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .kpi-detail {
+      margin-top: 18px;
+      max-height: 0;
+      opacity: 0;
+      color: #fff;
+      font-size: 12px;
+      line-height: 1.55;
+      transition: 280ms ease;
+      overflow: hidden;
+    }
+
+    .hero-kpi:hover .kpi-detail {
+      max-height: 90px;
+      opacity: 1;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(260px, 0.45fr);
+      gap: 40px;
+      align-items: end;
+      margin-bottom: 48px;
+    }
+
+    h2 {
+      margin-top: 18px;
+      max-width: 850px;
+      color: var(--ink);
+      font-size: clamp(30px, 4vw, 54px);
+      line-height: 1.08;
+      font-weight: 900;
+    }
+
+    .section-note {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 0.72fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .drill-panel {
+      position: sticky;
+      top: 88px;
+      min-height: 220px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      box-shadow: 0 18px 54px rgba(0, 31, 63, 0.08);
+      transition: 260ms ease;
+    }
+
+    .drill-panel .label {
+      color: var(--wine);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .drill-panel h3 {
+      margin-top: 14px;
+      color: var(--navy);
+      font-size: 22px;
+      line-height: 1.25;
+      font-weight: 900;
+    }
+
+    .drill-panel p {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .formula {
+      margin-top: 18px;
+      padding: 14px;
+      border-left: 4px solid var(--wine);
+      background: #fff;
+      color: var(--navy);
+      font-size: 13px;
+      line-height: 1.55;
+      font-weight: 800;
+    }
+
+    .funnel {
+      display: grid;
+      gap: 16px;
+      padding: 34px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .funnel-row {
+      --w: 100%;
+      width: var(--w);
+      min-height: 72px;
+      display: grid;
+      grid-template-columns: 92px 1fr 118px;
+      align-items: center;
+      gap: 18px;
+      padding: 0 24px;
+      color: var(--navy);
+      background: var(--bluewash);
+      border: 1px solid transparent;
+      transition: 280ms ease;
+      cursor: default;
+    }
+
+    .funnel-row:nth-child(2) { --w: 92%; }
+    .funnel-row:nth-child(3) { --w: 84%; }
+    .funnel-row:nth-child(4) { --w: 76%; background: var(--wash); }
+    .funnel-row:hover {
+      color: #fff;
+      background: var(--wine);
+      transform: translateX(16px);
+      box-shadow: var(--shadow);
+    }
+
+    .funnel-row strong {
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .funnel-row span {
+      font-size: 13px;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .icon {
+      width: 28px;
+      height: 28px;
+      color: currentColor;
+    }
+
+    .rule-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .rule-card, .track-card, .metric-card, .tip-card {
+      position: relative;
+      padding: 24px;
+      border: 1px solid var(--line);
+      background: #fff;
+      transition: 280ms ease;
+      overflow: hidden;
+    }
+
+    .rule-card::before, .track-card::before, .metric-card::before, .tip-card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 5px;
+      height: 100%;
+      background: var(--wine);
+      transform: scaleY(0);
+      transform-origin: top;
+      transition: 280ms ease;
+    }
+
+    .rule-card:hover, .track-card:hover, .metric-card:hover, .tip-card:hover {
+      transform: translateY(-8px);
+      box-shadow: var(--shadow);
+    }
+
+    .rule-card:hover::before, .track-card:hover::before, .metric-card:hover::before, .tip-card:hover::before {
+      transform: scaleY(1);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      color: var(--wine);
+    }
+
+    .card-title {
+      margin-top: 18px;
+      color: var(--navy);
+      font-size: 19px;
+      font-weight: 900;
+    }
+
+    .card-copy {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .flow-line {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-top: 30px;
+    }
+
+    .flow-step {
+      padding: 20px;
+      min-height: 148px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      transition: 260ms ease;
+    }
+
+    .flow-step:hover {
+      background: var(--navy);
+      color: #fff;
+      transform: translateY(-6px);
+    }
+
+    .flow-step b {
+      color: var(--wine);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+    }
+
+    .flow-step:hover b { color: var(--gold); }
+
+    .flow-step h3 {
+      margin-top: 18px;
+      font-size: 20px;
+      line-height: 1.28;
+    }
+
+    .flow-step p {
+      margin-top: 12px;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .flow-step:hover p { color: #d9e5f2; }
+
+    .chart-stage {
+      padding: 32px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, #fff, #fbfcfd);
+    }
+
+    .bars {
+      display: grid;
+      gap: 20px;
+    }
+
+    .bar {
+      display: grid;
+      grid-template-columns: 150px 1fr 58px;
+      gap: 16px;
+      align-items: center;
+      font-size: 13px;
+      color: var(--navy);
+      font-weight: 800;
+    }
+
+    .bar-track {
+      height: 14px;
+      background: var(--bluewash);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: calc(var(--value) * 1%);
+      background: var(--wine);
+      transform-origin: left;
+      transform: scaleX(0);
+      animation: growBar 1.1s ease forwards;
+    }
+
+    .bar:nth-child(even) .bar-fill { background: var(--navy); }
+
+    @keyframes growBar {
+      to { transform: scaleX(1); }
+    }
+
+    .heatmap {
+      margin-top: 26px;
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+    }
+
+    .heat-cell {
+      aspect-ratio: 1 / 0.72;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(0,31,63,0.08);
+      background: color-mix(in srgb, var(--wine) calc(var(--heat) * 1%), #fff);
+      color: var(--navy);
+      font-size: 11px;
+      font-weight: 800;
+      transition: 220ms ease;
+    }
+
+    .heat-cell:hover {
+      color: #fff;
+      background: var(--navy);
+      transform: scale(1.08);
+    }
+
+    .work-list {
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .work-item {
+      padding: 18px;
+      border: 1px solid var(--line);
+      background: #fff;
+      transition: 240ms ease;
+    }
+
+    .work-item:hover {
+      background: var(--wine);
+      color: #fff;
+      transform: translateY(-6px);
+    }
+
+    .work-item strong {
+      display: block;
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .work-item span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .work-item:hover span { color: #f3d9da; }
+
+    .drag-wrap {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #fff;
+      cursor: grab;
+    }
+
+    .drag-wrap:active { cursor: grabbing; }
+
+    .drag-track {
+      display: flex;
+      gap: 16px;
+      padding: 24px;
+      min-width: max-content;
+      user-select: none;
+      transform: translateX(0);
+    }
+
+    .top-card {
+      width: 260px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      transition: 240ms ease;
+    }
+
+    .top-card:hover {
+      color: #fff;
+      background: var(--navy);
+      transform: translateY(-6px);
+    }
+
+    .top-card .rank {
+      color: var(--wine);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .top-card:hover .rank { color: var(--gold); }
+
+    .top-card h3 {
+      margin-top: 14px;
+      font-size: 20px;
+      line-height: 1.28;
+    }
+
+    .top-card p {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .top-card:hover p { color: #dbe6f3; }
+
+    .node-map {
+      position: relative;
+      min-height: 500px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(217,224,234,0.6) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(217,224,234,0.6) 1px, transparent 1px),
+        #fff;
+      background-size: 58px 58px;
+      overflow: hidden;
+    }
+
+    .node-map svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .node {
+      position: absolute;
+      width: 190px;
+      min-height: 94px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.92);
+      box-shadow: 0 18px 48px rgba(0,31,63,0.08);
+      transition: 260ms ease;
+    }
+
+    .node:hover {
+      border-color: var(--wine);
+      background: var(--wine);
+      color: #fff;
+      transform: scale(1.05);
+      z-index: 4;
+    }
+
+    .node strong {
+      display: block;
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .node span {
+      display: block;
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .node:hover span { color: #f6dada; }
+
+    .pool {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .pool-card {
+      position: relative;
+      min-height: 430px;
+      padding: 28px;
+      border: 1px solid var(--line);
+      background: #fff;
+      overflow: hidden;
+      transition: 300ms ease;
+    }
+
+    .pool-card:hover {
+      color: #fff;
+      background: var(--navy);
+      transform: translateY(-8px);
+      box-shadow: var(--shadow);
+    }
+
+    .pool-card::after {
+      content: "";
+      position: absolute;
+      left: 28px;
+      bottom: 28px;
+      width: calc(var(--level) * 1%);
+      max-width: calc(100% - 56px);
+      height: 10px;
+      background: var(--wine);
+      transform-origin: left;
+      animation: growBar 1.1s ease forwards;
+    }
+
+    .pool-card b {
+      color: var(--wine);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+    }
+
+    .pool-card:hover b { color: var(--gold); }
+
+    .pool-card h3 {
+      margin-top: 20px;
+      font-size: 27px;
+      line-height: 1.14;
+      font-weight: 900;
+    }
+
+    .pool-card p {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .pool-card:hover p { color: #dbe6f3; }
+
+    .metric-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .metric-chip {
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      color: var(--navy);
+      background: var(--paper);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .pool-card:hover .metric-chip {
+      border-color: rgba(255,255,255,0.2);
+      color: #fff;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .platform-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .phone-card {
+      padding: 24px;
+      border: 1px solid var(--line);
+      background: #fff;
+      transition: 280ms ease;
+    }
+
+    .phone-card:hover {
+      transform: translateY(-8px);
+      box-shadow: var(--shadow);
+    }
+
+    .phone-frame {
+      height: 360px;
+      padding: 24px 18px;
+      border: 10px solid var(--ink);
+      border-radius: 32px;
+      background: linear-gradient(180deg, #fff, #f5f7fa);
+      overflow: hidden;
+    }
+
+    .phone-bar {
+      height: 8px;
+      width: 70px;
+      margin: 0 auto 24px;
+      border-radius: 999px;
+      background: var(--ink);
+    }
+
+    .phone-step {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--navy);
+      font-size: 12px;
+      font-weight: 800;
+      transform: translateY(18px);
+      opacity: 0;
+      animation: rise 600ms ease forwards;
+    }
+
+    .phone-step:nth-child(3) { animation-delay: 160ms; }
+    .phone-step:nth-child(4) { animation-delay: 320ms; }
+    .phone-step:nth-child(5) { animation-delay: 480ms; }
+
+    @keyframes rise {
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .pivot-zone {
+      display: grid;
+      grid-template-columns: 0.75fr 1fr;
+      gap: 28px;
+    }
+
+    .fields {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .field {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--navy);
+      font-size: 13px;
+      font-weight: 800;
+      cursor: grab;
+      transition: 200ms ease;
+    }
+
+    .field:hover {
+      color: #fff;
+      background: var(--wine);
+      transform: translateX(8px);
+    }
+
+    .pivot-table {
+      border: 1px solid var(--line);
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .pivot-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      min-height: 52px;
+    }
+
+    .pivot-row > div {
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .pivot-row.head > div {
+      color: #fff;
+      background: var(--navy);
+      font-weight: 900;
+    }
+
+    .pivot-row:hover > div:not(.empty) {
+      background: var(--wash);
+    }
+
+    .flip-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+    }
+
+    .flip-card {
+      min-height: 220px;
+      perspective: 1000px;
+    }
+
+    .flip-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 220px;
+      transform-style: preserve-3d;
+      transition: transform 520ms ease;
+    }
+
+    .flip-card:hover .flip-inner {
+      transform: rotateY(180deg);
+    }
+
+    .flip-face {
+      position: absolute;
+      inset: 0;
+      padding: 22px;
+      border: 1px solid var(--line);
+      background: #fff;
+      backface-visibility: hidden;
+    }
+
+    .flip-back {
+      color: #fff;
+      background: var(--navy);
+      transform: rotateY(180deg);
+    }
+
+    .flip-face b {
+      color: var(--wine);
+      font-size: 12px;
+    }
+
+    .flip-back b { color: var(--gold); }
+
+    .flip-face h3 {
+      margin-top: 18px;
+      font-size: 20px;
+      line-height: 1.25;
+    }
+
+    .flip-face p {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .flip-back p { color: #d9e5f2; }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(34px);
+      transition: 700ms cubic-bezier(.2,.8,.2,1);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .soft-band {
+      background: linear-gradient(180deg, #fff, #fbfcfd);
+    }
+
+    .dark-band {
+      color: #fff;
+      background: var(--navy);
+    }
+
+    .dark-band h2 { color: #fff; }
+    .dark-band .section-note { color: #c6d3e3; }
+    .dark-band .eyebrow { color: #c6d3e3; }
+    .dark-band .eyebrow::before { background: var(--gold); }
+
+    @media (max-width: 980px) {
+      .hero-grid, .section-head, .grid-2, .pivot-zone { grid-template-columns: 1fr; }
+      .rule-grid, .grid-3, .pool, .platform-grid { grid-template-columns: 1fr 1fr; }
+      .flow-line, .flip-grid { grid-template-columns: 1fr 1fr; }
+      .drill-panel { position: relative; top: 0; }
+      .hero-panel { min-height: auto; }
+    }
+
+    @media (max-width: 640px) {
+      .shell { width: min(100% - 28px, 1180px); }
+      .topbar { height: 58px; }
+      .brand span { display: none; }
+      section { padding: 82px 0; }
+      .hero { padding-top: 94px; }
+      .hero-kpis, .rule-grid, .grid-3, .pool, .platform-grid, .flow-line, .flip-grid, .work-list {
+        grid-template-columns: 1fr;
+      }
+      .hero-panel { padding: 28px; }
+      .funnel { padding: 20px; }
+      .funnel-row {
+        width: 100%;
+        grid-template-columns: 70px 1fr;
+        min-height: 88px;
+      }
+      .funnel-row .icon { display: none; }
+      .bar { grid-template-columns: 1fr; gap: 8px; }
+      .heatmap { grid-template-columns: repeat(4, 1fr); }
+      .pivot-row { grid-template-columns: 1fr 1fr; }
+      .phone-frame { height: 320px; }
+    }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute">
+    <symbol id="i-strategy" viewBox="0 0 24 24"><path d="M4 19V5h16v14H4Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 16l3-4 3 2 4-6" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="i-rule" viewBox="0 0 24 24"><path d="M7 3h10l3 4v14H4V3h3Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 11h8M8 15h8M8 7h5" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 22 20H2L12 3Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 9v5M12 17h.01" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-award" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m9 13-2 8 5-3 5 3-2-8" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="i-data" viewBox="0 0 24 24"><path d="M4 19h16M7 16V8M12 16V4M17 16v-6" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="i-flow" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="18" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9 6h5a4 4 0 0 1 4 4v5M15 18H9a4 4 0 0 1-4-4V9" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  </svg>
+
+  <header class="topbar">
+    <div class="shell">
+      <a class="brand" href="#top"><i class="brand-mark"></i><span>3K Q2 Ops Visual</span></a>
+      <nav class="nav" aria-label="页面导航">
+        <a href="#rules">规则</a>
+        <a href="#tracks">赛道</a>
+        <a href="#kos">KOS</a>
+        <a href="#koc">KOC</a>
+        <a href="#abnormal">异常</a>
+        <a href="#traffic">流量</a>
+        <a href="#platforms">平台</a>
+        <a href="#pivot">自查</a>
+        <a href="#tips">技巧</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <canvas id="particleCanvas"></canvas>
+      <div class="shell hero-grid">
+        <div class="reveal">
+          <div class="eyebrow">Q2 Labor Competition</div>
+          <h1>晋冀大区3K劳动竞赛<span>二季度规划</span></h1>
+          <p class="lead">基于《3K运营：备战二季度劳动竞赛！》重构为一套可滚动、可悬浮下钻、可直接编辑数据口径的运营可视化页面。核心围绕规则、赛道、作品质量、异常治理、流量机制与日常自查。</p>
+        </div>
+        <aside class="hero-panel reveal">
+          <div class="eyebrow" style="color:#dce7f4">Data-driven Operation</div>
+          <h2 style="color:#fff;font-size:38px;margin-top:20px">数量增长放缓，质量狠抓落实。</h2>
+          <p class="lead" style="color:#c7d4e5;font-size:15px">2026.3.26 - 2026.6.30；只统计本赛季作品；品牌部 KOS 活动有效；完成率上限为 2 倍。</p>
+          <div class="hero-kpis">
+            <div class="hero-kpi">
+              <span class="kpi-value">2x</span>
+              <span class="kpi-label">KOS 完成率上限</span>
+              <div class="kpi-detail">KOS实际完成数 / KOS数量指标，单项完成率封顶 2 倍。</div>
+            </div>
+            <div class="hero-kpi">
+              <span class="kpi-value">1000</span>
+              <span class="kpi-label">KOS TOP 入围池</span>
+              <div class="kpi-detail">有效 KOS 作品按播放、点赞、收藏综合分排名，取前 1000。</div>
+            </div>
+            <div class="hero-kpi">
+              <span class="kpi-value">100</span>
+              <span class="kpi-label">内部 KOC 优质池</span>
+              <div class="kpi-detail">内部 KOC 作品单独排名，取 TOP100；个人赛道前 20 名入围。</div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="rules">
+      <div class="shell">
+        <div class="section-head reveal">
+          <div>
+            <div class="eyebrow">Rules Overview</div>
+            <h2>KOS 到内部 KOC 分开核算，规则变成四个清晰的得分入口。</h2>
+          </div>
+          <p class="section-note">悬浮漏斗与规则卡片可查看赛道公式。PPT 原始口径包括 KOS 完成率、达标作品率、TOP1000 入围、异常作品扣分、内部 KOC TOP100 与个人最高作品排名。</p>
+        </div>
+        <div class="grid-2">
+          <div class="reveal">
+            <div class="funnel">
+              <div class="funnel-row drill" data-title="KOS 完成率" data-body="本赛季参加对应货权品牌运营部活动，从“浓友分享+”通道在抖音、快手、小红书发布作品，图文与时长不限。同品牌最多算一次。" data-formula="KOS完成率 = KOS实际完成数 / KOS数量指标；上限 2 倍。"><strong>KOS</strong><span>终端参赛，品牌部活动有效</span><svg class="icon"><use href="#i-strategy"/></svg></div>
+              <div class="funnel-row drill" data-title="达标作品率" data-body="达标作品定义为同一作品抖音播放量 + 快手播放量大于 500。办事处与品牌部按各自作品池计算。" data-formula="达标作品率 = 达标KOS作品数 / KOS作品总数。"><strong>达标</strong><span>播放量阈值筛选作品质量</span><svg class="icon"><use href="#i-data"/></svg></div>
+              <div class="funnel-row drill" data-title="TOP1000 入围" data-body="有效 KOS 作品剔除异常后拉通排名，按播放、点赞、收藏综合得分取前 1000 名。" data-formula="作品得分 = 抖快播放量×1 + 抖快红点赞量×10 + 抖红收藏量×10。"><strong>TOP1000</strong><span>每入围一次加 0.02 分</span><svg class="icon"><use href="#i-award"/></svg></div>
+              <div class="funnel-row drill" data-title="内部 KOC" data-body="内部 KOC 不再与 KOS 一起参选 TOP1000，单独形成集体赛道和个人赛道。" data-formula="集体赛道 = 优质作品数×0.02 + TOP100入围次数×0.1。"><strong>KOC</strong><span>集体 TOP100 + 个人 TOP20</span><svg class="icon"><use href="#i-rule"/></svg></div>
+            </div>
+            <div class="rule-grid">
+              <article class="rule-card drill" data-title="异常扣分阈值" data-body="异常作品率 8% 为提示阈；超过 10% 直接扣 2 分。①②③④可持续整改，⑤⑥一旦标记虚假不再更改。" data-formula="异常作品率 = 异常 KOS 作品数 / KOS 作品总数。"><div class="card-top"><svg class="icon"><use href="#i-alert"/></svg><b>扣分</b></div><h3 class="card-title">8% 提示，10% 扣分</h3><p class="card-copy">把异常治理前置到日常巡检，而不是赛后补救。</p></article>
+              <article class="rule-card drill" data-title="排名同分规则" data-body="若赛道得分相同，按总点赞量、总收藏量、总播放量、总作品数顺序继续比较，直到产生差异。" data-formula="同分排序：点赞 > 收藏 > 播放 > 作品数。"><div class="card-top"><svg class="icon"><use href="#i-award"/></svg><b>排名</b></div><h3 class="card-title">同分继续拆解</h3><p class="card-copy">避免排名停留在同分状态，强化互动质量。</p></article>
+              <article class="rule-card drill" data-title="数据不累积" data-body="本赛季 KOS 指标不是在原来基础上的新增，历史完成情况与本赛季无关，不累加、不去重。" data-formula="只看 2026.3.26 - 2026.6.30 发布作品。"><div class="card-top"><svg class="icon"><use href="#i-flow"/></svg><b>周期</b></div><h3 class="card-title">本赛季独立核算</h3><p class="card-copy">新老 KOS 均可，只要符合定义就有效。</p></article>
+              <article class="rule-card drill" data-title="多作品计入" data-body="同一任务可发布多个作品。劳动竞赛维度中达标率、优质率、TOP1000、TOP100 均按作品统计。" data-formula="同一终端多作品可分别进入作品池。"><div class="card-top"><svg class="icon"><use href="#i-strategy"/></svg><b>作品</b></div><h3 class="card-title">作品维度拉通排名</h3><p class="card-copy">鼓励多内容测试，但同平台禁发重复内容。</p></article>
+            </div>
+          </div>
+          <aside class="drill-panel reveal" data-default-title="悬浮查看规则公式" data-default-body="把鼠标移到左侧漏斗或规则卡片，每个赛道的公式、指标定义和扣分逻辑会在这里展开。" data-default-formula="核心：完成率 + 作品质量 + TOP入围 + 异常治理。">
+            <div class="label">Hover Drilldown</div>
+            <h3>悬浮查看规则公式</h3>
+            <p>把鼠标移到左侧漏斗或规则卡片，每个赛道的公式、指标定义和扣分逻辑会在这里展开。</p>
+            <div class="formula">核心：完成率 + 作品质量 + TOP入围 + 异常治理。</div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section id="tracks" class="soft-band">
+      <div class="shell">
+        <div class="section-head reveal">
+          <div>
+            <div class="eyebrow">Track Breakdown</div>
+            <h2>四条赛道要分开看：外部 KOS 抓完成和达标，内部 KOC 抓优质和头部。</h2>
+          </div>
+          <p class="section-note">悬浮卡片展示评分公式与举例；底部流程解释终端作品进入 TOP1000 与异常扣分的路径。</p>
+        </div>
+        <div class="grid-3 reveal">
+          <article class="track-card drill" data-title="办事处赛道" data-body="看办事处 KOS 完成率、达标作品率、办事处作品入选 TOP1000 次数，同时考虑异常作品率扣分。" data-formula="得分 = KOS完成率 + 达标作品率×2 + TOP1000次数×0.02 + 异常扣分。"><div class="card-top"><svg class="icon"><use href="#i-strategy"/></svg><b>Office</b></div><h3 class="card-title">办事处赛道</h3><p class="card-copy">强调区域规划落地、终端动员与作品质量。</p></article>
+          <article class="track-card drill" data-title="品牌部赛道" data-body="看所有办事处该品牌 KOS 完成和达标情况，品牌作品每入选 KOS TOP1000 一次加 0.02 分。" data-formula="得分 = KOS完成率 + 达标作品率×2 + TOP1000次数×0.02 + 异常扣分。"><div class="card-top"><svg class="icon"><use href="#i-rule"/></svg><b>Brand</b></div><h3 class="card-title">品牌部赛道</h3><p class="card-copy">货权品牌互认，按品牌作品池统筹质量。</p></article>
+          <article class="track-card drill" data-title="内部 KOC 集体赛道" data-body="异常作品直接剔除。优质作品定义为播放量大于 1000 且点赞量大于 50。" data-formula="得分 = 优质作品数×0.02 + 内部KOC TOP100入围次数×0.1。"><div class="card-top"><svg class="icon"><use href="#i-award"/></svg><b>Collective</b></div><h3 class="card-title">内部 KOC 集体赛道</h3><p class="card-copy">部门和办事处共同争夺内部优质内容池。</p></article>
+        </div>
+        <div class="flow-line reveal">
+          <div class="flow-step"><b>01</b><h3>作品提交</h3><p>终端或内部 KOC 从浓友分享+通道发布或回填链接。</p></div>
+          <div class="flow-step"><b>02</b><h3>有效性核验</h3><p>品牌、货权、发布状态、账号绑定、内容关联性被检查。</p></div>
+          <div class="flow-step"><b>03</b><h3>异常剔除/扣分</h3><p>六类异常进入治理池；KOS 异常率超过阈值会扣分。</p></div>
+          <div class="flow-step"><b>04</b><h3>作品排名</h3><p>KOS 进 TOP1000，内部 KOC 进 TOP100，个人取最高作品。</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="kos">
+      <div class="shell">
+        <div class="section-head reveal">
+          <div>
+            <div class="eyebrow">KOS Metrics</div>
+            <h2>KOS 指标要同时盯完成率、达标率、平台活跃度和单条作品质量。</h2>
+          </div>
+          <p class="section-note">柱状图和热力图为可编辑示例数据，用来表达看板结构；悬浮单条作品卡片查看播放、点赞、收藏、评论和计算逻辑。</p>
+        </div>
+        <div class="grid-2">
+          <div class="chart-stage reveal">
+            <div class="bars">
+              <div class="bar"><span>唐山办事处完成率</span><div class="bar-track"><div class="bar-fill" style="--value:88"></div></div><b>88%</b></div>
+              <div class="bar"><span>石家庄完成率</span><div class="bar-track"><div class="bar-fill" style="--value:74"></div></div><b>74%</b></div>
+              <div class="bar"><span>衡水达标率</span><div class="bar-track"><div class="bar-fill" style="--value:63"></div></div><b>63%</b></div>
+              <div class="bar"><span>邯郸达标率</span><div class="bar-track"><div class="bar-fill" style="--value:52"></div></div><b>52%</b></div>
+            </div>
+            <div class="heatmap" aria-label="作品活跃度热力图">
+              <div class="heat-cell" style="--heat:18">抖音</div><div class="heat-cell" style="--heat:44">快手</div><div class="heat-cell" style="--heat:31">小红书</div><div class="heat-cell" style="--heat:62">五粮春</div><div class="heat-cell" style="--heat:75">五粮醇</div><div class="heat-cell" style="--heat:40">尖庄</div><div class="heat-cell" style="--heat:56">特曲</div>
+              <div class="heat-cell" style="--heat:82">中午</div><div class="heat-cell" style="--heat:68">晚间</div><div class="heat-cell" style="--heat:24">周一</div><div class="heat-cell" style="--heat:48">周三</div><div class="heat-cell" style="--heat:72">周五</div><div class="heat-cell" style="--heat:35">周末</div><div class="heat-cell" style="--heat:64">复投</div>
+            </div>
+          </div>
+          <div class="work-list reveal">
+            <div class="work-item drill" data-title="作品 A：五粮春送礼别踩坑" data-body="播放 1200，完播率 28%，互动率 1.2%。已经通过冷启动，下一步优化评论引导和收藏理由。" data-formula="作品分 = 播放×1 + 点赞×10 + 收藏×10。"><strong>1200</strong><span>播放量 / 完播 28%</span></div>
+            <div class="work-item drill" data-title="作品 B：倒酒慢镜头" data-body="播放 300，前 3 秒留存率 10%。冷启动未通过，优先重做开头钩子。" data-formula="前3秒留存率 = 观看≥3秒用户数 / 播放次数 ×100%。"><strong>300</strong><span>播放量 / 3秒留存 10%</span></div>
+            <div class="work-item drill" data-title="作品 C：白酒黑话" data-body="播放 5200，互动率 7.8%，收藏 86。适合继续做系列化复刻。" data-formula="互动率 =（点赞+评论+收藏+转发）/ 播放量 ×100%。"><strong>5200</strong><span>播放量 / 互动 7.8%</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="koc" class="soft-band">
+      <div class="shell">
+        <div class="section-head reveal">
+          <div>
+            <div class="eyebrow">Internal KOC</div>
+            <h2>内部 KOC 重点看 TOP100 优质作品，拖动卡片比较不同部门与办事处。</h2>
+          </div>
+          <p class="section-note">按 PPT 口径：内部 KOC 优质作品播放量大于 1000 且点赞量大于 50；TOP100 入围一次加 0.1 分。</p>
+        </div>
+        <div class="drag-wrap reveal" id="kocDrag">
+          <div class="drag-track">
+            <article class="top-card"><span class="rank">TOP 01 / 品牌部</span><h3>宴席场景种草</h3><p>播放 18,420，点赞 618，收藏 203。优质作品 + TOP100 双计入。</p></article>
+            <article class="top-card"><span class="rank">TOP 08 / 唐山</span><h3>送礼避坑清单</h3><p>播放 9,760，点赞 312，收藏 140。适合小红书长尾搜索复用。</p></article>
+            <article class="top-card"><span class="rank">TOP 16 / 衡水</span><h3>聚餐选酒指南</h3><p>播放 7,230，点赞 188，评论 42。互动结构均衡。</p></article>
+            <article class="top-card"><span class="rank">TOP 34 / 职能部门</span><h3>品牌故事短讲</h3><p>播放 4,880，点赞 92，收藏 51。可扩展为系列内容。</p></article>
+            <article class="top-card"><span class="rank">TOP 61 / 石家庄</span><h3>三秒痛点开场</h3><p>播放 3,260，点赞 76。开头结构可复制到 KOS 素材池。</p></article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="abnormal">
+      <div class="shell">
+        <div class="section-head reveal">
+          <div>
+            <div class="eyebrow">Abnormal Works</div>
+            <h2>异常作品治理要分两类：可整改与不可更改，日常抽检必须前置。</h2>
+          </div>
+          <p class="section-note">节点图展示六类异常。悬浮每个节点查看处理规则；中心节点表示异常率，红酒红强调高风险扣分区。</p>
+        </div>
+        <div class="grid-2">
+          <div class="node-map reveal">
+            <svg viewBox="0 0 800 500" preserveAspectRatio="none"><path d="M400 250L150 90M400 250L400 70M400 250L650 92M400 250L150 395M400 250L402 420M400 250L650 394" stroke="#001F3F" stroke-opacity=".18" stroke-width="2"/></svg>
+            <div class="node drill" style="left:calc(50% - 95px);top:calc(50% - 47px);background:var(--navy);color:#fff" data-title="异常率治理" data-body="8% 为提示阈，超过 10% 直接扣 2 分。日常发现即标记，不建议等赛后集中处理。" data-formula="异常作品率 = 异常作品数 / KOS作品总数。"><strong>异常作品率</strong><span style="color:#dce6f2">提示 8% / 扣分 10%</span></div>
+            <div class="node drill" style="left:55px;top:55px" data-title="作品不存在" data-body="链接无法访问，或内容已删除、下架，无法核验。可持续整改。" data-formula="处理：补链、重发、重新核验。"><strong>作品不存在</strong><span>链接不可访问</span></div>
+            <div class="node drill" style="left:305px;top:42px" data-title="多人共用链接" data-body="不同 KOS 提交相同作品链接，属于数据复用与违规抄袭。可持续整改。" data-formula="处理：按账号逐条清理，保留真实原创链接。"><strong>多人共用</strong><span>链接重复</span></div>
+            <div class="node drill" style="right:55px;top:58px" data-title="账号盗用" data-body="作品不属于本人账号，存在盗用素材或冒名顶替。可持续整改。" data-formula="处理：账号与作品主体必须一致。"><strong>账号盗用</strong><span>他人账号链接</span></div>
+            <div class="node drill" style="left:55px;bottom:55px" data-title="无关内容" data-body="内容与当期活动主题、品牌产品无关，属于无效营销内容。可持续整改。" data-formula="处理：重做品牌、场景、产品相关内容。"><strong>无关内容</strong><span>不匹配活动主题</span></div>
+            <div class="node drill" style="left:305px;bottom:35px" data-title="播放数据异常" data-body="播放量显著低于点赞、评论等互动数据，数据逻辑失真。一旦标记虚假不再更改。" data-formula="例：播放 100，点赞 500。"><strong>播放异常</strong><span>播放低于互动</span></div>
+            <div class="node drill" style="right:55px;bottom:56px" data-title="掉赞异常" data-body="点赞量大于 500 时掉赞率大于 2%，或点赞小于等于 500 时掉赞数超过 10。一旦标记虚假不再更改。" data-formula="掉赞率 = 掉赞数 / 原点赞数。"><strong>掉赞异常</strong><span>刷赞后回落</span></div>
+          </div>
+          <aside class="drill-panel reveal">
+            <div class="label">Risk Logic</div>
+            <h3>悬浮异常节点查看扣分逻辑</h3>
+            <p>①②③④持续整改；⑤⑥一旦标记为虚假就不更改，无法整改。</p>
+            <div class="formula">异常作品率超过 10%：直接扣 2 分。</div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section id="traffic" class="dark-band">
+      <div class="shell">
+        <div class="section-head reveal">
+          <div>
+            <div class="eyebrow">Traffic Logic</div>
+            <h2>平台流量像闯关游戏：冷启动、兴趣推荐、爆款推荐逐级放量。</h2>
+          </div>
+          <p class="section-note">每个流量池悬浮显示关键公式和行业参考线。阈值来自 PPT 里的市场实操总结，平台官方没有公开固定阈值。</p>
+        </div>
+        <div class="pool reveal">
+          <article class="pool-card drill" style="--level:28" data-title="冷启动测试池" data-body="新手场 500 - 2000 播放。先看前 3 秒留存、完播率、点击率。播放破 500 即超越多数新手。" data-formula="前3秒留存率 = 观看≥3秒用户数 / 播放次数；CTR = 点击数 / 曝光数。"><b>Stage 01</b><h3>冷启动池</h3><p>用户愿不愿意留下来。低于 50% 的 3 秒留存，后续内容再好也很难进入下一池。</p><div class="metric-list"><span class="metric-chip">3秒留存 ≥50-60%</span><span class="metric-chip">CTR 合格 ≥3%</span><span class="metric-chip">完播率短视频 ≥15%</span></div></article>
+          <article class="pool-card drill" style="--level:56" data-title="精准兴趣推荐池" data-body="进阶场 2k - 5k 播放。平台观察用户是否愿意点赞、评论、收藏、转发和关注。" data-formula="互动率 =（点赞+评论+收藏+转发）/ 播放量；转粉率 = 新增粉丝 / 播放量。"><b>Stage 02</b><h3>兴趣推荐池</h3><p>用户愿不愿意为你付出行为。互动率高说明内容能被算法识别为对目标人群有价值。</p><div class="metric-list"><span class="metric-chip">互动率合格 ≥3%</span><span class="metric-chip">互动率优质 ≥8%</span><span class="metric-chip">转粉率优质 ≥2%</span></div></article>
+          <article class="pool-card drill" style="--level:92" data-title="爆款全域推荐池" data-body="爆发场 50,000+ 播放。看深度完播、粉丝转化率、视频复看率。目标是打牢前两池，不为一时波动焦虑。" data-formula="复看率 = 观看≥2次用户数 / 播放次数；优质线 ≥10%。"><b>Stage 03</b><h3>爆款推荐池</h3><p>内容有没有长期价值和破圈能力。爆款可遇不可求，前两池稳定通过才是运营重点。</p><div class="metric-list"><span class="metric-chip">深度完播</span><span class="metric-chip">非粉转粉率</span><span class="metric-chip">复看率优质 ≥10%</span></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="platforms">
+      <div class="shell">
+        <div class="section-head reveal">
+          <div>
+            <div class="eyebrow">Multi-platform Operation</div>
+            <h2>抖音、小红书、快手底层逻辑相通，但发布路径和内容脾气不同。</h2>
+          </div>
+          <p class="section-note">悬浮手机卡片查看平台注意事项：抖音和小红书需发布后回填链接，快手支持一键发布；授权绑定只识别首次。</p>
+        </div>
+        <div class="platform-grid reveal">
+          <article class="phone-card drill" data-title="抖音发布" data-body="2025年12月16日起，抖音作品需先在抖音平台发布，再将作品链接回填至浓友分享+任务详情界面。" data-formula="发布 → 复制链接 → 回填链接 → 系统校验 → 发布记录确认。">
+            <div class="phone-frame"><div class="phone-bar"></div><div class="phone-step">创作者服务中心</div><div class="phone-step">作品发布 / 复制链接</div><div class="phone-step">浓友分享+回填</div><div class="phone-step">校验成功提示</div></div>
+            <h3 class="card-title">抖音：爆发快</h3><p class="card-copy">适合强刺激、快节奏、痛点开头与娱乐化表达。</p>
+          </article>
+          <article class="phone-card drill" data-title="小红书发布" data-body="小红书发布需跳转浏览器到小红书，发布后复制笔记链接，回填到任务详情的小红书回填链接位置。" data-formula="账号 + 标题 + 正文 + 链接有效 + 话题必须 100% 一致。">
+            <div class="phone-frame"><div class="phone-bar"></div><div class="phone-step">跳转小红书</div><div class="phone-step">发布笔记</div><div class="phone-step">复制链接</div><div class="phone-step">标题/话题校验</div></div>
+            <h3 class="card-title">小红书：长尾强</h3><p class="card-copy">适合送礼攻略、干货清单、生活方式与高颜值推荐。</p>
+          </article>
+          <article class="phone-card drill" data-title="快手发布" data-body="快手支持浓友分享+任务详情页一键发布。若提示请选择发布平台，先检查快手账号是否完成授权绑定。" data-formula="快手账号可授权 1 个；抖音/小红书可授权 3 个。">
+            <div class="phone-frame"><div class="phone-bar"></div><div class="phone-step">选择快手</div><div class="phone-step">立即发布 / 再次发布</div><div class="phone-step">发布成功弹窗</div><div class="phone-step">发布记录追溯</div></div>
+            <h3 class="card-title">快手：信任深</h3><p class="card-copy">适合真实、接地气、老铁文化和深度粉丝运营。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="pivot" class="soft-band">
+      <div class="shell">
+        <div class="section-head reveal">
+          <div>
+            <div class="eyebrow">Self-check & Pivot</div>
+            <h2>数据自查三步走：导出底表、拖字段、验证口径。</h2>
+          </div>
+          <p class="section-note">左侧字段可拖动，右侧透视表示意展示办事处、终端账号、活动品牌货权等字段如何组织。悬浮字段查看口径。</p>
+        </div>
+        <div class="pivot-zone reveal">
+          <div class="fields">
+            <div class="field drill" draggable="true" data-title="办事处字段" data-body="用于查看每个办事处有多少终端、参加某品牌活动的终端数量，以及按办事处拆分活动表现。" data-formula="行：办事处；值：用户ID非重复计数。">办事处</div>
+            <div class="field drill" draggable="true" data-title="终端账号字段" data-body="用户 ID、ZD 编码、终端编码可作为终端去重与明细下钻字段。" data-formula="值字段如为用户ID，需改为非重复计数。">终端账号 / 用户ID</div>
+            <div class="field drill" draggable="true" data-title="活动品牌货权" data-body="用于筛选是否有任务品牌货权，结合任务关联品牌判断有效 KOS。" data-formula="筛选器：是否有任务品牌货权 = 是。">活动品牌货权</div>
+            <div class="field drill" draggable="true" data-title="发布状态" data-body="自查时必须确认筛选器已经选择“已发布”，避免未发布数据进入统计。" data-formula="筛选器：发布状态 = 已发布。">发布状态</div>
+            <div class="field drill" draggable="true" data-title="XLOOKUP 补字段" data-body="复杂场景需要用 XLOOKUP 从发布明细报表补办事处、省份、城市、区县等字段。" data-formula="=XLOOKUP(A2,发布明细报表!M:M,发布明细报表!AM:AN,&quot;&quot;,0,1)">XLOOKUP</div>
+          </div>
+          <div class="pivot-table">
+            <div class="pivot-row head"><div>行</div><div>值</div><div>筛选器</div><div>下钻明细</div></div>
+            <div class="pivot-row"><div>办事处</div><div>用户ID非重复计数</div><div>发布状态=已发布</div><div>终端编码 / 手机号</div></div>
+            <div class="pivot-row"><div>任务关联品牌</div><div>活动任务ID非重复计数</div><div>货权=是</div><div>内容链接 / 播放数</div></div>
+            <div class="pivot-row"><div>用户ID</div><div>作品数</div><div>平台=抖快红</div><div>点赞 / 收藏 / 评论</div></div>
+            <div class="pivot-row"><div>办事处 + 用户ID</div><div>活动参与场次</div><div>大区=晋冀</div><div>异常标记 / 审核状态</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tips">
+      <div class="shell">
+        <div class="section-head reveal">
+          <div>
+            <div class="eyebrow">Optimization Tips</div>
+            <h2>高性价比动作不复杂：发布时间、BGM、话题、互动、前 3 秒。</h2>
+          </div>
+          <p class="section-note">卡片悬浮翻转，展示操作前后的优化方向。核心来自 PPT 的落地技巧与小测试案例。</p>
+        </div>
+        <div class="flip-grid reveal">
+          <div class="flip-card"><div class="flip-inner"><div class="flip-face"><b>Time</b><h3>黄金发布时间</h3><p>优先 12-13 点、18-21 点发布，形成稳定账号活跃。</p></div><div class="flip-face flip-back"><b>After</b><h3>固定节奏</h3><p>每周至少 3 条更新；可尝试固定每晚 20:00，培养粉丝预期。</p></div></div></div>
+          <div class="flip-card"><div class="flip-inner"><div class="flip-face"><b>BGM</b><h3>轻快热门音乐</h3><p>选择热门且无版权争议的 BGM，降低用户滑走概率。</p></div><div class="flip-face flip-back"><b>After</b><h3>贴合场景</h3><p>聚餐、送礼、宴席、商务场景分别建立音乐模板。</p></div></div></div>
+          <div class="flip-card"><div class="flip-inner"><div class="flip-face"><b>Tags</b><h3>精准话题标签</h3><p>添加 3-5 个垂直小话题，避免大词空泛。</p></div><div class="flip-face flip-back"><b>After</b><h3>搜索友好</h3><p>小红书强调长尾搜索，标题、正文、话题要和回填校验一致。</p></div></div></div>
+          <div class="flip-card"><div class="flip-inner"><div class="flip-face"><b>Hook</b><h3>前 3 秒黄金策略</h3><p>直击痛点或制造反差，别用 10 秒慢镜头消耗冷启动。</p></div><div class="flip-face flip-back"><b>After</b><h3>先救冷启动</h3><p>视频 B 前 3 秒留存仅 10%，优先重做开头，再谈互动优化。</p></div></div></div>
+          <div class="flip-card"><div class="flip-inner"><div class="flip-face"><b>Interact</b><h3>互动动作</h3><p>发布后 1-2 小时内回复评论，文案末尾增加提问。</p></div><div class="flip-face flip-back"><b>After</b><h3>提升进阶池</h3><p>视频 A 已有 1200 播放和 28% 完播，下一步提升互动率。</p></div></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const detailDefaults = {
+      title: "悬浮查看详情",
+      body: "把鼠标移到图表、节点、卡片或字段上，即可查看对应规则、公式与处理建议。",
+      formula: "所有文案与数值均在 HTML 中可直接编辑。"
+    };
+
+    function updatePanels(source) {
+      const panel = source.closest("section")?.querySelector(".drill-panel");
+      if (!panel) return;
+      panel.querySelector("h3").textContent = source.dataset.title || detailDefaults.title;
+      panel.querySelector("p").textContent = source.dataset.body || detailDefaults.body;
+      panel.querySelector(".formula").textContent = source.dataset.formula || detailDefaults.formula;
+    }
+
+    document.querySelectorAll(".drill").forEach((el) => {
+      el.addEventListener("mouseenter", () => updatePanels(el));
+      el.addEventListener("focus", () => updatePanels(el));
+    });
+
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add("visible");
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+
+    const canvas = document.getElementById("particleCanvas");
+    const ctx = canvas.getContext("2d");
+    let particles = [];
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(rect.width * ratio);
+      canvas.height = Math.floor(rect.height * ratio);
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      particles = Array.from({ length: Math.min(80, Math.floor(rect.width / 16)) }, () => ({
+        x: Math.random() * rect.width,
+        y: Math.random() * rect.height,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.35,
+        r: Math.random() * 2.4 + 0.8
+      }));
+    }
+
+    function drawParticles() {
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      particles.forEach((p, i) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > rect.width) p.vx *= -1;
+        if (p.y < 0 || p.y > rect.height) p.vy *= -1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = i % 3 === 0 ? "rgba(123,17,19,.26)" : "rgba(0,31,63,.18)";
+        ctx.fill();
+      });
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const a = particles[i], b = particles[j];
+          const dx = a.x - b.x, dy = a.y - b.y;
+          const d = Math.hypot(dx, dy);
+          if (d < 120) {
+            ctx.strokeStyle = `rgba(0,31,63,${(120 - d) / 900})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(drawParticles);
+    }
+
+    resizeCanvas();
+    drawParticles();
+    window.addEventListener("resize", resizeCanvas);
+
+    const drag = document.getElementById("kocDrag");
+    const track = drag?.querySelector(".drag-track");
+    let down = false, startX = 0, offset = 0, current = 0;
+    if (drag && track) {
+      const apply = () => { track.style.transform = `translateX(${current}px)`; };
+      drag.addEventListener("pointerdown", (e) => {
+        down = true;
+        startX = e.clientX;
+        offset = current;
+        drag.setPointerCapture(e.pointerId);
+      });
+      drag.addEventListener("pointermove", (e) => {
+        if (!down) return;
+        const max = 0;
+        const min = Math.min(0, drag.clientWidth - track.scrollWidth - 24);
+        current = Math.max(min, Math.min(max, offset + e.clientX - startX));
+        apply();
+      });
+      drag.addEventListener("pointerup", () => { down = false; });
+      drag.addEventListener("pointercancel", () => { down = false; });
+    }
+
+    document.querySelectorAll(".field").forEach((field) => {
+      field.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", field.textContent.trim());
+      });
+    });
+    document.querySelector(".pivot-table")?.addEventListener("dragover", (e) => e.preventDefault());
+    document.querySelector(".pivot-table")?.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const text = e.dataTransfer.getData("text/plain");
+      const row = document.createElement("div");
+      row.className = "pivot-row";
+      row.innerHTML = `<div>${text}</div><div>非重复计数</div><div>已发布 / 货权=是</div><div>悬浮字段查看口径</div>`;
+      e.currentTarget.appendChild(row);
+    });
+  </script>
+</body>
+</html>

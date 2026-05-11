@@ -1,1 +1,30 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="description" content="2026年第二季度3K运营劳动竞赛规则高级动态可视化网页"/><title>2026 Q2 3K运营劳动竞赛规则可视化</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23001F3F'/%3E%3Ccircle cx='24' cy='24' r='13' fill='%23C7A54A'/%3E%3Cpath d='M22 42h22v6H16V18h6v24z' fill='%23fff'/%3E%3C/svg%3E"/><style>html,body{margin:0;min-height:100%;background:#001f3f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}.loader{min-height:100vh;display:grid;place-items:center;padding:28px;text-align:center;background:radial-gradient(circle at 20% 10%,rgba(123,17,19,.55),transparent 30%),linear-gradient(145deg,#001f3f,#1d1021)}.loader b{display:block;font-size:clamp(30px,8vw,68px);line-height:1.05}.loader span{display:block;margin-top:18px;color:rgba(255,255,255,.72);font-weight:700}.pulse{width:56px;height:56px;margin:0 auto 28px;border-radius:50%;background:linear-gradient(135deg,#7b1113,#c7a54a);box-shadow:0 0 0 0 rgba(199,165,74,.34);animation:pulse 1.6s infinite}@keyframes pulse{70%{box-shadow:0 0 0 28px rgba(199,165,74,0)}100%{box-shadow:0 0 0 0 rgba(199,165,74,0)}}</style></head><body><main class="loader"><div><div class="pulse"></div><b>3K Q2 Command</b><span>正在加载高级动态可视化页面...</span></div></main><script type="module">const parts=["payload/p00.txt","payload/p01.txt","payload/p02.txt","payload/p03.txt","payload/p04.txt","payload/p05.txt","payload/p06.txt","payload/p07.txt"];const stamp=new URL(location.href).searchParams.get('v')||'20260511';function toBytes(base64){const bin=atob(base64);const bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i+=1)bytes[i]=bin.charCodeAt(i);return bytes}async function inflate(bytes){if('DecompressionStream'in window){const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));return await new Response(stream).text()}const pako=await import('https://esm.sh/pako@2.1.0');return new TextDecoder().decode(pako.inflate(bytes))}const payload=(await Promise.all(parts.map(async p=>{const r=await fetch(p+'?v='+encodeURIComponent(stamp));if(!r.ok)throw new Error('payload '+p+' '+r.status);return (await r.text()).trim()}))).join('');const html=await inflate(toBytes(payload));document.open();document.write(html);document.close();</script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="2026年第二季度3K运营劳动竞赛规则高级动态可视化网页" />
+    <title>2026 Q2 3K运营劳动竞赛规则可视化</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23001F3F'/%3E%3Ccircle cx='24' cy='24' r='13' fill='%23C7A54A'/%3E%3Cpath d='M22 42h22v6H16V18h6v24z' fill='%23fff'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="importmap">
+{
+        "imports": {
+                "react": "./vendor/react.mjs",
+                "react-dom/client": "./vendor/react-dom_client.mjs",
+                "htm": "./vendor/htm.mjs",
+                "three": "./vendor/three.mjs",
+                "d3": "./vendor/d3.mjs",
+                "gsap": "./vendor/gsap.mjs",
+                "xlsx": "./vendor/xlsx.mjs",
+                "lucide-react": "./vendor/lucide-react.mjs"
+        }
+}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="./data/competition-data.js"></script>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>

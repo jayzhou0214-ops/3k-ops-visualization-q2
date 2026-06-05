@@ -21,6 +21,11 @@ const iconNames = {
   source: Icons.FileText,
 };
 
+const OFFICE_RACE_TASK_IDS = new Set([83, 105, 106, 127, 129, 130, 133, 135, 137, 141, 142, 143, 149]);
+const REGIONAL_KOS_TOPIC = "【河北省&山西省】晋冀浓情・万店同荐";
+const REGIONAL_KOS_START_DATE = new Date(2026, 5, 1, 0, 0, 0);
+const CREATOR_PLATFORMS = new Set(["抖音", "快手", "小红书"]);
+
 function fmt(n) {
   if (typeof n !== "number") return n;
   return n.toLocaleString("zh-CN");
@@ -36,6 +41,82 @@ function numericValue(value) {
   if (!text) return 0;
   if (text.endsWith("%")) return Number(text.replace("%", "")) / 100;
   return Number(text.replace(/,/g, "")) || 0;
+}
+
+function cleanText(value) {
+  if (value === null || value === undefined) return "";
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const pad = n => String(n).padStart(2, "0");
+    return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())} ${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`;
+  }
+  const text = String(value).trim();
+  if (!text || text.toLowerCase() === "none") return "";
+  return text.endsWith(".0") && /^\d+\.0$/.test(text) ? text.slice(0, -2) : text;
+}
+
+function parseDateValue(value) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const epoch = new Date(Date.UTC(1899, 11, 30));
+    return new Date(epoch.getTime() + value * 86400000);
+  }
+  const text = cleanText(value);
+  const match = text.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (!match) return null;
+  const [, y, m, d, h = "0", min = "0", s = "0"] = match;
+  const date = new Date(Number(y), Number(m) - 1, Number(d), Number(h), Number(min), Number(s));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function reportEndDateFromSource(sourceName = "") {
+  const match = cleanText(sourceName).match(/~(\d{8})/);
+  if (!match) return null;
+  const [, raw] = match;
+  const date = new Date(Number(raw.slice(0, 4)), Number(raw.slice(4, 6)) - 1, Number(raw.slice(6, 8)), 23, 59, 59);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function inDateRange(value, startDate, endDate) {
+  const date = parseDateValue(value);
+  if (!date) return false;
+  if (startDate && date < startDate) return false;
+  if (endDate && date > endDate) return false;
+  return true;
+}
+
+function dateLabel(value) {
+  const date = parseDateValue(value);
+  if (!date) return "";
+  const pad = n => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function firstToken(value) {
+  const text = cleanText(value);
+  if (!text) return "";
+  const parts = text.split(/[,，、;/；]+/).map(part => part.trim()).filter(Boolean);
+  const planned = parts.filter(part => !part.includes("尚未规划"));
+  return (planned[0] || parts[0] || text).trim();
+}
+
+function normalizeOffice(value) {
+  const office = firstToken(value);
+  if (!office) return "";
+  return office.includes("办事处") ? office : `${office}办事处`;
+}
+
+function normalizeRegion(value) {
+  return firstToken(value).replace("大区", "");
+}
+
+function isRegionalKosTopic(value) {
+  const text = cleanText(value).replace(/\s+/g, "");
+  return text.includes("晋冀") && text.includes("万店同荐");
+}
+
+function taskIdOf(row) {
+  const value = numericValue(row["活动任务ID"]);
+  return value ? Math.trunc(value) : null;
 }
 
 function calcKosScore(row) {
@@ -866,8 +947,287 @@ function normalizeMetricRows(rows, type) {
     });
 }
 
-function xlsxToPayload(arrayBuffer, fallbackMetrics) {
-  const workbook = XLSX.read(arrayBuffer, { type: "array" });
+function buildGeoMap(relationRows) {
+  const map = new Map();
+  relationRows.forEach(row => {
+    const zd = cleanText(row["ZD编码"]);
+    if (!zd || map.has(zd)) return;
+    map.set(zd, {
+      region: normalizeRegion(row["大区"]),
+      office: normalizeOffice(row["办事处"]),
+      province: cleanText(row["省份"]),
+      city: cleanText(row["城市"]),
+      district: cleanText(row["县区"] || row["区县"]),
+    });
+  });
+  return map;
+}
+
+function enrichCreatorRows(detailRows, relationRows) {
+  const geoMap = buildGeoMap(relationRows);
+  return detailRows.map(row => {
+    const zd = cleanText(row["ZD编码"]);
+    const geo = geoMap.get(zd) || {};
+    const office = cleanText(row["办事处"]);
+    const region = cleanText(row["大区"]);
+    return {
+      ...row,
+      大区: (region && !/[,，、;/；]/.test(region)) ? normalizeRegion(region) : (geo.region || normalizeRegion(region)),
+      办事处: (office && !/[,，、;/；]/.test(office) && !office.includes("尚未规划")) ? normalizeOffice(office) : (geo.office || normalizeOffice(office)),
+      省份: geo.province || cleanText(row["省份"]),
+      城市: geo.city || cleanText(row["城市"]),
+      区县: geo.district || cleanText(row["区县"]),
+    };
+  });
+}
+
+function platformScore(row) {
+  const platform = cleanText(row["发布平台"]);
+  const play = numericValue(row["播放数"]);
+  const like = numericValue(row["点赞数"]);
+  const fav = numericValue(row["收藏数"]);
+  if (platform === "抖音") return play + like * 10 + fav * 10;
+  if (platform === "快手") return play + like * 10;
+  if (platform === "小红书") return like * 10 + fav * 10;
+  return 0;
+}
+
+function assignCompetitionRank(rows, scoreField, rankField = "排名") {
+  const sorted = [...rows].sort((a, b) => d3.descending(numericValue(a[scoreField]), numericValue(b[scoreField])));
+  let previousScore = null;
+  let rank = 0;
+  sorted.forEach((row, index) => {
+    const score = numericValue(row[scoreField]);
+    if (previousScore === null || score !== previousScore) {
+      rank = index + 1;
+      previousScore = score;
+    }
+    row[rankField] = rank;
+  });
+  return sorted;
+}
+
+function buildOfficeRaceFromCreator(rows) {
+  const targetByOffice = new Map(DATA.officeTargets.map(row => [normalizeOffice(row.office), Number(row.target) || 0]));
+  const regionByOffice = new Map(DATA.officeTargets.map(row => [normalizeOffice(row.office), normalizeRegion(row.region)]));
+  const units = new Map();
+  rows.forEach(row => {
+    const taskId = taskIdOf(row);
+    if (!OFFICE_RACE_TASK_IDS.has(taskId)) return;
+    if (cleanText(row["是否有任务品牌货权"]) !== "是") return;
+    const id = cleanText(row["用户创作ID"]) || `${cleanText(row["ZD编码"])}-${units.size + 1}`;
+    if (!units.has(id)) {
+      units.set(id, {
+        id,
+        zd: cleanText(row["ZD编码"]),
+        region: normalizeRegion(row["大区"]),
+        office: normalizeOffice(row["办事处"]),
+        province: cleanText(row["省份"]),
+        city: cleanText(row["城市"]),
+        district: cleanText(row["区县"]),
+        taskId,
+        topic: cleanText(row["任务主题"]),
+        brand: cleanText(row["任务关联品牌"]),
+        statuses: new Set(),
+        platforms: new Set(),
+        dyPlay: 0,
+        ksPlay: 0,
+        dyLike: 0,
+        ksLike: 0,
+        xhsLike: 0,
+        dyFav: 0,
+        xhsFav: 0,
+      });
+    }
+    const unit = units.get(id);
+    const status = cleanText(row["发布状态"]);
+    const platform = cleanText(row["发布平台"]);
+    const play = numericValue(row["播放数"]);
+    const like = numericValue(row["点赞数"]);
+    const fav = numericValue(row["收藏数"]);
+    if (status) unit.statuses.add(status);
+    if (platform) unit.platforms.add(platform);
+    if (platform === "抖音") {
+      unit.dyPlay += play;
+      unit.dyLike += like;
+      unit.dyFav += fav;
+    } else if (platform === "快手") {
+      unit.ksPlay += play;
+      unit.ksLike += like;
+    } else if (platform === "小红书") {
+      unit.xhsLike += like;
+      unit.xhsFav += fav;
+    }
+  });
+
+  const workRows = Array.from(units.values())
+    .filter(unit => unit.statuses.has("已发布") && [...unit.platforms].some(platform => CREATOR_PLATFORMS.has(platform)) && targetByOffice.has(unit.office))
+    .map(unit => {
+      const score = unit.dyPlay + unit.ksPlay + (unit.dyLike + unit.ksLike + unit.xhsLike) * 10 + (unit.dyFav + unit.xhsFav) * 10;
+      return {
+        用户创作ID: unit.id,
+        ZD编码: unit.zd,
+        大区: unit.region || regionByOffice.get(unit.office) || "",
+        办事处: unit.office,
+        省份: unit.province,
+        城市: unit.city,
+        区县: unit.district,
+        活动任务ID: unit.taskId,
+        任务主题: unit.topic,
+        任务关联品牌: unit.brand,
+        发布平台: [...unit.platforms].sort().join("、"),
+        发布状态: [...unit.statuses].sort().join("、"),
+        作品得分: score,
+        是否达标: unit.dyPlay + unit.ksPlay > 500 ? "是" : "否",
+      };
+    });
+
+  const rankedWorks = assignCompetitionRank(workRows, "作品得分", "全国作品排名");
+  const top1000Ids = new Set(rankedWorks.filter(row => row["全国作品排名"] <= 1000).map(row => row["用户创作ID"]));
+  const grouped = d3.group(rankedWorks, row => row["办事处"]);
+  const officeMetrics = DATA.officeTargets.map(target => {
+    const office = normalizeOffice(target.office);
+    const group = grouped.get(office) || [];
+    const actual = new Set(group.map(row => row["ZD编码"]).filter(Boolean)).size;
+    const totalWorks = group.length;
+    const qualifiedWorks = group.filter(row => row["是否达标"] === "是").length;
+    const top1000 = group.filter(row => top1000Ids.has(row["用户创作ID"])).length;
+    return {
+      region: normalizeRegion(target.region),
+      office,
+      target: Number(target.target) || 0,
+      actual,
+      totalWorks,
+      qualifiedWorks,
+      top1000,
+      abnormal: 0,
+      dataDate: "原始工作簿派生",
+      sourceNote: "异常扣分暂不计算",
+    };
+  });
+  const ranking = assignCompetitionRank(officeMetrics.map(row => {
+    const completionScore = Math.min(row.actual / Math.max(row.target, 1), 2);
+    const qualifiedScore = row.totalWorks ? (row.qualifiedWorks / row.totalWorks) * 2 : 0;
+    const totalScore = completionScore + qualifiedScore + row.top1000 * 0.02;
+    return {
+      大区: row.region,
+      办事处: row.office,
+      KOS数量指标: row.target,
+      有效KOS数: row.actual,
+      KOS完成率: row.actual / Math.max(row.target, 1),
+      作品数: row.totalWorks,
+      达标作品数: row.qualifiedWorks,
+      达标作品率: row.totalWorks ? row.qualifiedWorks / row.totalWorks : 0,
+      TOP1000入围次数: row.top1000,
+      异常扣分: "待复核",
+      全国得分_不含异常扣分: totalScore,
+    };
+  }), "全国得分_不含异常扣分");
+  const top1000 = rankedWorks.filter(row => row["全国作品排名"] <= 1000);
+  return { officeMetrics, officeKosRace: { ranking, top1000 } };
+}
+
+function buildRegionalKosRaceFromCreator(rows, sourceName = "") {
+  const fileCutoffDate = reportEndDateFromSource(sourceName);
+  const validRows = [];
+  const lateSuccessRows = [];
+  let latestPublishDate = null;
+  const statusMap = new Map();
+  rows.filter(row => isRegionalKosTopic(row["任务主题"])).forEach(row => {
+    const status = cleanText(row["发布状态"]) || "空";
+    const platform = cleanText(row["发布平台"]) || "空";
+    const key = [normalizeRegion(row["大区"]), normalizeOffice(row["办事处"]), cleanText(row["城市"]), cleanText(row["区县"]), status, platform].join("|");
+    if (!statusMap.has(key)) {
+      statusMap.set(key, { 大区: normalizeRegion(row["大区"]), 办事处: normalizeOffice(row["办事处"]), 城市: cleanText(row["城市"]), 区县: cleanText(row["区县"]), 发布状态: status, 发布平台: platform, 数量: 0 });
+    }
+    statusMap.get(key).数量 += 1;
+    if (status === "已发布" && CREATOR_PLATFORMS.has(platform)) {
+      const publishDate = parseDateValue(row["内容发布时间"]);
+      if (!publishDate || publishDate < REGIONAL_KOS_START_DATE) return;
+      if (!latestPublishDate || publishDate > latestPublishDate) latestPublishDate = publishDate;
+      const validRow = {
+        ZD编码: cleanText(row["ZD编码"]),
+        终端编码: cleanText(row["终端编码"]),
+        用户ID: cleanText(row["用户ID"]),
+        用户名称: cleanText(row["用户名称"]),
+        大区: normalizeRegion(row["大区"]),
+        办事处: normalizeOffice(row["办事处"]),
+        省份: cleanText(row["省份"]),
+        城市: cleanText(row["城市"]),
+        区县: cleanText(row["区县"]),
+        用户创作ID: cleanText(row["用户创作ID"]),
+        发布平台: platform,
+        内容发布时间: cleanText(row["内容发布时间"]),
+        平台作品得分: platformScore(row),
+        内容链接: cleanText(row["内容链接"]),
+      };
+      validRows.push(validRow);
+      if (fileCutoffDate && publishDate > fileCutoffDate) lateSuccessRows.push(validRow);
+    }
+  });
+
+  const ranking = Array.from(d3.group(validRows, row => row["ZD编码"] || row["终端编码"] || row["用户ID"]), ([terminal, group]) => {
+    const sorted = [...group].sort((a, b) => d3.descending(a["平台作品得分"], b["平台作品得分"]));
+    const top6 = sorted.slice(0, 6);
+    const first = sorted[0] || {};
+    return {
+      ZD编码: first["ZD编码"] || terminal,
+      终端编码: first["终端编码"] || "",
+      用户名称: first["用户名称"] || "",
+      大区: first["大区"] || "",
+      办事处: first["办事处"] || "",
+      省份: first["省份"] || "",
+      城市: first["城市"] || "",
+      区县: first["区县"] || "",
+      有效作品数: sorted.length,
+      是否进入排名: sorted.length >= 6 ? "是" : "否",
+      计分作品数: top6.length,
+      最高6条总分: d3.sum(top6, row => row["平台作品得分"]),
+      多平台数: new Set(sorted.map(row => row["发布平台"])).size,
+      最高单条得分: top6[0]?.["平台作品得分"] || 0,
+    };
+  }).sort((a, b) => d3.descending(a["最高6条总分"], b["最高6条总分"]));
+  const rankedOnly = assignCompetitionRank(ranking.filter(row => row["是否进入排名"] === "是"), "最高6条总分", "当前排名");
+  const rankByTerminal = new Map(rankedOnly.map(row => [row["ZD编码"] || row["终端编码"], row["当前排名"]]));
+  ranking.forEach(row => {
+    row["当前排名"] = rankByTerminal.get(row["ZD编码"] || row["终端编码"]) || "";
+  });
+  return {
+    ranking,
+    statusSummary: Array.from(statusMap.values()),
+    validWorks: validRows,
+    lateSuccessWorks: lateSuccessRows,
+    dateRange: {
+      start: dateLabel(REGIONAL_KOS_START_DATE),
+      end: latestPublishDate ? dateLabel(latestPublishDate) : "",
+      fileCutoff: fileCutoffDate ? dateLabel(fileCutoffDate) : "",
+    },
+  };
+}
+
+function creatorWorkbookToPayload(workbook, fallbackMetrics, sourceName = "") {
+  const detailSheet = workbook.Sheets["发布明细报表"];
+  const relationSheet = workbook.Sheets["KOS对应关系"];
+  if (!detailSheet || !relationSheet) return null;
+  const detailRows = XLSX.utils.sheet_to_json(detailSheet, { defval: "" });
+  const relationRows = XLSX.utils.sheet_to_json(relationSheet, { defval: "" });
+  const enrichedRows = enrichCreatorRows(detailRows, relationRows);
+  const officeRace = buildOfficeRaceFromCreator(enrichedRows);
+  const regionalKosRace = buildRegionalKosRaceFromCreator(enrichedRows, sourceName);
+  return {
+    officeMetrics: officeRace.officeMetrics.length ? officeRace.officeMetrics : fallbackMetrics.offices,
+    brandMetrics: fallbackMetrics.brands,
+    officeKosRace: officeRace.officeKosRace,
+    regionalKosRace,
+    creatorDetailRows: enrichedRows.length,
+    __rawCreatorWorkbook: true,
+  };
+}
+
+function xlsxToPayload(arrayBuffer, fallbackMetrics, sourceName = "") {
+  const workbook = XLSX.read(arrayBuffer, { type: "array", cellDates: true });
+  const creatorPayload = creatorWorkbookToPayload(workbook, fallbackMetrics, sourceName);
+  if (creatorPayload) return creatorPayload;
   const sheetByName = candidates => candidates.map(name => workbook.Sheets[name]).find(Boolean);
   const officeSheet = sheetByName(["officeMetrics", "办事处数据", "办事处"]);
   const brandSheet = sheetByName(["brandMetrics", "品牌数据", "品牌"]);
@@ -893,7 +1253,102 @@ function aggregateRegions(offices) {
   })).sort((a, b) => d3.descending(a.target, b.target));
 }
 
-function DataViz({ data, metrics, setMetrics, toast, setDrawer }) {
+function formatRaceCell(value, key) {
+  if (typeof value !== "number") return value;
+  if (String(key).includes("率")) return pct(value);
+  if (String(key).includes("得分")) return Math.round(value * 100) / 100;
+  return fmt(value);
+}
+
+function MiniRaceTable({ title, rows, limit = 10 }) {
+  if (!rows?.length) return html`<article className="race-card"><h3>${title}</h3><p>暂无数据</p></article>`;
+  const headers = Object.keys(rows[0]).slice(0, 10);
+  return html`
+    <article className="race-card">
+      <div className="chart-title"><h3>${title}</h3><span>展示前${Math.min(limit, rows.length)}条</span></div>
+      <div className="table-wrap compact-table">
+        <table>
+          <thead><tr>${headers.map(h => html`<th key=${h}>${h}</th>`)}</tr></thead>
+          <tbody>
+            ${rows.slice(0, limit).map((row, index) => html`
+              <tr key=${index}>${headers.map(h => html`<td key=${h}>${formatRaceCell(row[h], h)}</td>`)}</tr>
+            `)}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  `;
+}
+
+function RaceInsightPanel({ raceData, setDrawer }) {
+  if (!raceData?.officeKosRace && !raceData?.regionalKosRace) return null;
+  const officeRanking = raceData.officeKosRace?.ranking || [];
+  const officeTop = officeRanking[0];
+  const officeKosCount = d3.sum(officeRanking, row => numericValue(row["有效KOS数"]));
+  const regionalRanking = raceData.regionalKosRace?.ranking || [];
+  const regionalRanked = regionalRanking.filter(row => row["是否进入排名"] === "是");
+  const regionalTop = regionalRanked[0];
+  const statusSummary = raceData.regionalKosRace?.statusSummary || [];
+  const regionalRange = raceData.regionalKosRace?.dateRange || { start: "2026-06-01", end: "" };
+  const regionalRangeText = `${regionalRange.start || "2026-06-01"} ~ ${regionalRange.end || "最新"}`;
+  const lateSuccessCount = raceData.regionalKosRace?.lateSuccessWorks?.length || 0;
+  return html`
+    <div className="race-panels reveal">
+      <section className="race-panel office-race-panel">
+        <div className="race-panel-head">
+          <div>
+            <span>办事处赛道</span>
+            <h3>办事处 KOS 赛道</h3>
+            <p>只看劳动竞赛办事处口径：全国排名、晋冀办事处子集、TOP1000。异常扣分暂不计入。</p>
+          </div>
+          <button className="btn secondary" onClick=${() => setDrawer({
+            title: "办事处 KOS 赛道口径",
+            body: "筛选：是否有任务品牌货权=是，活动任务ID限定为83、105、106、127、129、130、133、135、137、141、142、143、149。\n计分：同一用户创作ID聚合为同一作品，按播放、点赞、收藏计算作品分，并拉通TOP1000。\n办事处得分：KOS完成率得分上限2 + 达标作品率*2 + TOP1000入围次数*0.02；异常扣分暂不计入，只进入待复核。"
+          })}>
+            <${Icons.Info} /> 计算口径
+          </button>
+        </div>
+        <div className="race-kpis">
+          <div><span>完整明细</span><strong>${fmt(raceData.creatorDetailRows || 0)}</strong><small>补省市区后</small></div>
+          <div><span>办事处第一</span><strong>${officeTop?.["办事处"] || "-"}</strong><small>${officeTop ? `${formatRaceCell(officeTop["全国得分_不含异常扣分"], "得分")}分` : "待上传"}</small></div>
+          <div><span>有效KOS</span><strong>${fmt(officeKosCount)}</strong><small>办事处赛道</small></div>
+          <div><span>TOP1000</span><strong>${fmt(raceData.officeKosRace?.top1000?.length || 0)}</strong><small>作品入围</small></div>
+        </div>
+        <div className="race-table-grid single">
+          <${MiniRaceTable} title="办事处赛道_全国排名" rows=${officeRanking} limit=${12} />
+        </div>
+      </section>
+
+      <section className="race-panel regional-race-panel">
+        <div className="race-panel-head">
+          <div>
+            <span>大区 KOS 赛道</span>
+            <h3>晋冀大区 KOS 赛道</h3>
+            <p>只看“晋冀浓情・万店同荐”任务主题。发布状态、当前排名和平台作品得分都归在这个赛道下；按表格内已发布成功时间计分，当前为 ${regionalRangeText}。</p>
+          </div>
+          <button className="btn secondary" onClick=${() => setDrawer({
+            title: "晋冀大区 KOS 赛道口径",
+            body: `筛选：任务主题=【河北省&山西省】晋冀浓情・万店同荐；任务规则从2026-06-01开始。\n计分日期：${regionalRangeText}。最终以表格内“已发布”且有平台记录的内容发布时间为准，不按文件名截止日删减；抖音=播放+点赞*10+收藏*10，快手=播放+点赞*10，小红书=点赞*10+收藏*10。\n排名：单终端/KOS取最高6条有效作品求和，未发布/发布中只进入发布状态统计，不进入最终得分。${regionalRange.fileCutoff ? `\n文件名截止日：${regionalRange.fileCutoff}；表内截止日后已发布成功并纳入计分：${lateSuccessCount}条。` : ""}`
+          })}>
+            <${Icons.Info} /> 计算口径
+          </button>
+        </div>
+        <div className="race-kpis">
+          <div><span>计分日期</span><strong>${regionalRange.start || "2026-06-01"}</strong><small>${regionalRange.end || "最新"}</small></div>
+          <div><span>有效发布作品</span><strong>${fmt(raceData.regionalKosRace?.validWorks?.length || 0)}</strong><small>含跨日${fmt(lateSuccessCount)}条</small></div>
+          <div><span>进入排名</span><strong>${fmt(regionalRanked.length)}</strong><small>有效作品数≥6</small></div>
+          <div><span>当前第一</span><strong>${regionalTop?.["办事处"] || "-"}</strong><small>${regionalTop ? `${formatRaceCell(regionalTop["最高6条总分"], "得分")}分` : "待上传"}</small></div>
+        </div>
+        <div className="race-table-grid two">
+          <${MiniRaceTable} title="大区KOS赛道_当前排名" rows=${regionalRanking} limit=${12} />
+          <${MiniRaceTable} title="大区KOS赛道_发布状态" rows=${statusSummary} limit=${12} />
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function DataViz({ data, metrics, setMetrics, raceData, setRaceData, toast, setDrawer }) {
   const [scope, setScope] = useState("office");
   const [region, setRegion] = useState("全部");
   const [mode, setMode] = useState("completion");
@@ -917,9 +1372,14 @@ function DataViz({ data, metrics, setMetrics, toast, setDrawer }) {
       brands: payload.brandMetrics || payload.brands || metrics.brands,
     };
     setMetrics(next);
+    setRaceData(payload.officeKosRace || payload.regionalKosRace ? {
+      officeKosRace: payload.officeKosRace || null,
+      regionalKosRace: payload.regionalKosRace || null,
+      creatorDetailRows: payload.creatorDetailRows || 0,
+    } : null);
     setMapSelected(next.offices[0] || null);
     setUploadName(payload.__sourceName || "已上传Excel数据");
-    toast("数据已更新，图表和公式已重新计算");
+    toast(payload.__rawCreatorWorkbook ? "原始报表已解析，两个赛道已重新计算" : "数据已更新，图表和公式已重新计算");
   };
 
   return html`
@@ -951,15 +1411,15 @@ function DataViz({ data, metrics, setMetrics, toast, setDrawer }) {
           <div className="update-guide">
             <div>
               <strong>上传格式</strong>
-              <span>只上传Excel：使用模板文件 .xlsx。Word不能上传；其他非结构化入口已隐藏，避免格式混乱。</span>
+              <span>支持原始报表 .xlsx，也兼容旧模板。Word不能上传；其他非结构化入口已隐藏。</span>
             </div>
             <div>
               <strong>模板工作表</strong>
-              <span>officeMetrics已预置45个办事处；brandMetrics已预置6个品牌。表头必须保留英文名，页面按表头读取并即时重算。</span>
+              <span>原始报表需包含“发布明细报表”和“KOS对应关系”；旧模板仍支持officeMetrics和brandMetrics。</span>
             </div>
             <div>
               <strong>更新步骤</strong>
-              <span>下载Excel模板，把SmartBI或创作中心导出的最新数据填入对应表，点击“上传Excel数据”。异常率填0.08或8%均可。</span>
+              <span>优先直接上传创作中心导出的原始报表，页面会自动补省市区；办事处KOS按3月26日起完整报表，大区KOS按6月1日起、表内已发布成功时间计分。</span>
             </div>
           </div>
           <div className="filters">
@@ -983,7 +1443,7 @@ function DataViz({ data, metrics, setMetrics, toast, setDrawer }) {
                 <option value="qualified">达标率</option>
               </select>
             </label>
-            <button className="btn secondary" onClick=${() => setDrawer({ title: "Excel上传说明", body: "下载并使用 data/3k-q2-data-template.xlsx。\nofficeMetrics 表：region、office、target、actual、totalWorks、qualifiedWorks、top1000、abnormal、dataDate、sourceNote。\nbrandMetrics 表：brand、target、actual、totalWorks、qualifiedWorks、top1000、abnormal、dataDate、sourceNote。\nactual 是二季度采集期内截至导出时点的有效完成数；totalWorks 是作品总数；qualifiedWorks 是达标作品数；top1000 是入围次数；abnormal 是异常作品率。\n异常率可填0.08或8%。上传后柱状图、折线图、热力图、地图和指标卡即时刷新。页面默认样例不代表一季度或二季度真实完成。" })}>
+            <button className="btn secondary" onClick=${() => setDrawer({ title: "Excel上传说明", body: "推荐上传创作中心原始报表：必须包含“发布明细报表”和“KOS对应关系”。页面会按ZD编码补省份、城市、区县，并分开计算办事处KOS赛道和大区KOS赛道。\n大区KOS赛道规则从2026-06-01开始，最终以表格内“已发布”且有平台记录的内容发布时间为准；文件名“~YYYYMMDD”只作为跨日提示，不作为删减依据。\n兼容旧模板：officeMetrics 表：region、office、target、actual、totalWorks、qualifiedWorks、top1000、abnormal、dataDate、sourceNote；brandMetrics 表：brand、target、actual、totalWorks、qualifiedWorks、top1000、abnormal、dataDate、sourceNote。\n异常扣分目前不自动计算，待复核后再纳入最终得分。" })}>
               <${Icons.Info} /> 字段说明
             </button>
             <a className="btn primary" href="./data/3k-q2-data-template.xlsx" download><${Icons.Download} /> 下载Excel模板</a>
@@ -994,7 +1454,7 @@ function DataViz({ data, metrics, setMetrics, toast, setDrawer }) {
                 if (!file) return;
                 try {
                   const buffer = await file.arrayBuffer();
-                  const payload = xlsxToPayload(buffer, metrics);
+                  const payload = xlsxToPayload(buffer, metrics, file.name);
                   payload.__sourceName = `${file.name} 已加载`;
                   applyPayload(payload);
                 } catch (err) {
@@ -1008,10 +1468,12 @@ function DataViz({ data, metrics, setMetrics, toast, setDrawer }) {
             <div className="field-preview">
               <div><strong>officeMetrics</strong><span>region、office、target、actual、totalWorks、qualifiedWorks、top1000、abnormal、dataDate、sourceNote</span></div>
               <div><strong>brandMetrics</strong><span>brand、target、actual、totalWorks、qualifiedWorks、top1000、abnormal、dataDate、sourceNote</span></div>
+              <div><strong>原始报表</strong><span>发布明细报表、KOS对应关系。上传后自动生成 officeKosRace 和 regionalKosRace。</span></div>
               <div><strong>页面说明</strong><span>全国筛选默认显示17个营销大区汇总；选择某个大区后显示该大区下属办事处。模板已预置45个办事处目标，未上传前为演示样例。</span></div>
             </div>
           </details>
         </div>
+        <${RaceInsightPanel} raceData=${raceData} setDrawer=${setDrawer} />
         <div className="viz-chart-grid reveal" style=${{ marginTop: "16px" }}>
           <article className="card chart-card">
             <div className="chart-title"><h3>${scope === "brand" ? "品牌" : "办事处"}${mode === "completion" ? "完成率" : "达标率"}柱状图</h3><span>柱顶已标数值</span></div>
@@ -1436,6 +1898,7 @@ function App() {
   const [drawer, setDrawer] = useState(null);
   const [toastText, setToastText] = useState("");
   const [metrics, setMetrics] = useState({ offices: DATA.officeTargets, brands: DATA.brandMetrics });
+  const [raceData, setRaceData] = useState(null);
   useSectionAnimation();
 
   useEffect(() => {
@@ -1497,7 +1960,7 @@ function App() {
       <main>
         <${Hero} totals=${totals} setDrawer=${setDrawer} />
         <${RuleModule} data=${DATA} activeTrack=${activeTrack} setActiveTrack=${setActiveTrack} setDrawer=${setDrawer} />
-        <${DataViz} data=${DATA} metrics=${metrics} setMetrics=${setMetrics} toast=${setToastText} setDrawer=${setDrawer} />
+        <${DataViz} data=${DATA} metrics=${metrics} setMetrics=${setMetrics} raceData=${raceData} setRaceData=${setRaceData} toast=${setToastText} setDrawer=${setDrawer} />
         <${Rewards} data=${DATA} setDrawer=${setDrawer} />
         <${Duties} data=${DATA} />
         <${Traffic} data=${DATA} />

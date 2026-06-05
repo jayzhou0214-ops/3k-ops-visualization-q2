@@ -910,6 +910,122 @@ h4 {
   line-height: 1.6;
 }
 
+.race-panels {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.race-panel {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid rgba(122, 30, 44, 0.22);
+  border-radius: var(--radius);
+  background: #f6f0e6;
+  color: #12110f;
+  box-shadow: 0 18px 40px rgba(18, 17, 15, 0.10);
+}
+
+.race-panels .race-panel {
+  margin-top: 0;
+}
+
+.race-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(75, 52, 41, 0.18);
+}
+
+.race-panel-head span {
+  display: block;
+  color: #7a1e2c;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.race-panel-head h3 {
+  margin: 4px 0 6px;
+  font-size: 24px;
+}
+
+.race-panel-head p {
+  margin: 0;
+  color: rgba(18, 17, 15, 0.72);
+}
+
+.race-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.race-kpis div {
+  min-height: 92px;
+  padding: 14px;
+  border-left: 4px solid #7a1e2c;
+  border-radius: var(--radius);
+  background: #12110f;
+  color: #f6f0e6;
+}
+
+.race-kpis span,
+.race-kpis small {
+  display: block;
+  color: rgba(246, 240, 230, 0.78);
+  font-size: 12px;
+}
+
+.race-kpis strong {
+  display: block;
+  margin: 8px 0;
+  font-size: clamp(18px, 2vw, 26px);
+  line-height: 1.15;
+}
+
+.race-table-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.race-table-grid.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.race-table-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.race-card {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(75, 52, 41, 0.16);
+  border-radius: var(--radius);
+  background: #fffaf1;
+}
+
+.compact-table {
+  max-height: 380px;
+  overflow: auto;
+}
+
+.compact-table table {
+  min-width: 760px;
+}
+
+.compact-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #12110f;
+}
+
 .calculator {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 0.7fr);
@@ -1929,7 +2045,12 @@ th {
   }
 
   .metric-board,
-  .viz-chart-grid {
+  .viz-chart-grid,
+  .race-table-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .race-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -2087,10 +2208,25 @@ th {
   .grid-3,
   .grid-2,
   .viz-chart-grid,
+  .race-table-grid,
+  .race-table-grid.single,
+  .race-table-grid.two,
   .flip-grid,
   .timeline,
   .calculator,
   .image-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .race-panel {
+    padding: 14px;
+  }
+
+  .race-panel-head {
+    display: grid;
+  }
+
+  .race-kpis {
     grid-template-columns: 1fr;
   }
 

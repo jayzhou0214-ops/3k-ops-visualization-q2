@@ -2,6 +2,8 @@
 
 这是一个静态 React + Three.js + D3 + GSAP 网页，用于展示公司 2026 年第二季度 3K 运营劳动竞赛规则、附件指标和培训口径。
 
+当前 GitHub Pages 入口已指向国内稳定版：`https://map.jianengzhou.com/3k/index.html?v=20260605-kos`。
+
 ## 本地运行
 
 ```bash
